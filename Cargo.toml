@@ -9,6 +9,4 @@ getopts = "0.2"
 users = "0.7"
 time = "0.1"
 regex = "1"
-
-[dependencies.lazy_static]
-git = "https://github.com/rust-lang-nursery/lazy-static.rs"
+lazy_static = "1.0"
