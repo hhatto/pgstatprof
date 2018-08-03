@@ -40,10 +40,13 @@ notifications:
     email: false
 
 before_deploy:
-    - cargo build --target $TARGET --release
-    - mkdir "pgstatprof-${TRAVIS_TAG}-${TARGET}"
-    - cp target/$TARGET/release/pgstatprof README.md "pgstatprof-${TRAVIS_TAG}-${TARGET}"
-    - zip "pgstatprof-${TRAVIS_TAG}-${TARGET}.zip" -r "pgstatprof-${TRAVIS_TAG}-${TARGET}"
+    - |
+      if [ -n "${TARGET-}" ]; then
+        cargo build --target $TARGET --release
+        mkdir "pgstatprof-${TRAVIS_TAG}-${TARGET}"
+        cp target/$TARGET/release/pgstatprof README.md "pgstatprof-${TRAVIS_TAG}-${TARGET}"
+        zip "pgstatprof-${TRAVIS_TAG}-${TARGET}.zip" -r "pgstatprof-${TRAVIS_TAG}-${TARGET}"
+      fi
 
 deploy:
     provider: releases
