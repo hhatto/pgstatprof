@@ -33,7 +33,7 @@ before_script:
     - if [[ "${TARGET}" == "i686-unknown-linux-gnu" ]]; then rustup target add $TARGET; fi
 
 script:
-    - cargo build --verbose --target $TARGET $FEATURES
+    - if [ -n "${TARGET-}" ]; then cargo build --verbose --target $TARGET $FEATURES; fi
     - cargo test --verbose $FEATURES --no-fail-fast
 
 notifications:
