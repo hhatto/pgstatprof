@@ -34,6 +34,7 @@ before_script:
 
 script:
     - if [ -n "${TARGET-}" ]; then cargo build --verbose --target $TARGET $FEATURES; fi
+    - if [ -z "${TARGET}" ]; then cargo build --verbose $FEATURES; fi
     - cargo test --verbose $FEATURES --no-fail-fast
 
 notifications:
