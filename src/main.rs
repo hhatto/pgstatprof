@@ -34,7 +34,7 @@ lazy_static! {
 trait Summarize {
     fn new(limit: u32) -> Self;
     fn show(&mut self, n_query: u32);
-    fn update(&mut self, queries: Vec<String>);
+    fn update(&mut self, queries: Vec<String>) -> usize;
 }
 
 fn show_summary(summ: &HashMap<String, i64>, n_query: u32) {
@@ -65,11 +65,13 @@ impl Summarize for Summarizer {
         show_summary(&self.counts, n_query);
     }
 
-    fn update(&mut self, queries: Vec<String>) {
+    fn update(&mut self, queries: Vec<String>) -> usize {
         for query in queries {
             let count = self.counts.entry(query).or_insert(0);
             *count += 1;
         }
+
+        self.counts.len()
     }
 }
 
@@ -102,7 +104,7 @@ impl Summarize for RecentSummarizer {
         show_summary(&summ, n_query);
     }
 
-    fn update(&mut self, queries: Vec<String>) {
+    fn update(&mut self, queries: Vec<String>) -> usize {
         let mut qs = queries;
         let mut qc = Vec::<QueryCount>::new();
         if self.counts.len() >= self.limit as usize {
@@ -123,6 +125,8 @@ impl Summarize for RecentSummarizer {
             l.n += 1;
         }
         self.counts.push(qc);
+
+        self.counts.len()
     }
 }
 
@@ -150,6 +154,7 @@ struct ProfilerOption {
     interval: f32,
     delay: i32,
     top: u32,
+    diff: bool,
     normalize: bool,
 }
 
@@ -208,6 +213,7 @@ fn print_usage(opts: Options) {
 
 fn exec_profile<T: Summarize>(conn: &Connection, mut summ: T, options: &ProfilerOption) {
     let mut cnt = 0;
+    let mut old_summary_cnt = 0;
     loop {
         let mut procs = get_process_list(conn);
         for process in procs.iter_mut() {
@@ -217,19 +223,33 @@ fn exec_profile<T: Summarize>(conn: &Connection, mut summ: T, options: &Profiler
             }
         }
 
-        summ.update(procs.iter().map(|x| x.info.clone()).collect());
+        let summary_cnt = summ.update(procs.iter().map(|x| x.info.clone()).collect());
 
         cnt += 1;
         if cnt >= options.delay {
             cnt = 0;
-            let t = now().to_local();
-            println!(
-                "##  {}.{:03} {}",
-                strftime("%Y-%m-%d %H:%M:%S", &t).expect("fail strftime(ymdhms)"),
-                t.tm_nsec / 1000_000,
-                strftime("%z", &t).expect("fail strftime(z)")
-            );
-            summ.show(options.top);
+
+            let is_print = if !options.diff {
+                true
+            } else if old_summary_cnt != summary_cnt {
+                true
+            } else {
+                false
+            };
+
+            if is_print {
+                let t = now().to_local();
+                println!(
+                    "##  {}.{:03} {}",
+                    strftime("%Y-%m-%d %H:%M:%S", &t).expect("fail strftime(ymdhms)"),
+                    t.tm_nsec / 1000_000,
+                    strftime("%z", &t).expect("fail strftime(z)")
+                );
+
+                summ.show(options.top);
+
+                old_summary_cnt = summary_cnt;
+            }
         }
 
         thread::sleep(Duration::from_millis((1000. * options.interval) as u64));
@@ -251,6 +271,7 @@ fn main() {
         "N",
     );
     opts.optopt("i", "interval", "(float) Sampling interval", "N.M");
+    opts.optflag("", "diff", "only output when existing new query (default: false)");
     opts.optflag("", "no-normalize", "normalize queries (default: false)");
     opts.optopt(
         "",
@@ -294,6 +315,7 @@ fn main() {
         interval: opts2v!(matches, opts, "interval", f32, 1.0),
         delay: opts2v!(matches, opts, "delay", i32, 1),
         top: opts2v!(matches, opts, "top", u32, 10),
+        diff: !matches.opt_present("diff"),
         normalize: !matches.opt_present("no-normalize"),
     };
 
