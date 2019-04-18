@@ -315,7 +315,7 @@ fn main() {
         interval: opts2v!(matches, opts, "interval", f32, 1.0),
         delay: opts2v!(matches, opts, "delay", i32, 1),
         top: opts2v!(matches, opts, "top", u32, 10),
-        diff: !matches.opt_present("diff"),
+        diff: matches.opt_present("diff"),
         normalize: !matches.opt_present("no-normalize"),
     };
 
