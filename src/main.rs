@@ -293,7 +293,7 @@ fn main() {
         None => get_user_by_uid(get_current_uid())
             .expect("fail get uid")
             .name()
-            .to_string(),
+            .to_os_string().into_string().expect("get user"),
     };
     let password = match matches.opt_str("password") {
         Some(v) => v,
