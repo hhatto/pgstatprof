@@ -1,10 +1,5 @@
-extern crate getopts;
 #[macro_use]
 extern crate lazy_static;
-extern crate postgres;
-extern crate regex;
-extern crate time;
-extern crate users;
 
 use std::borrow::Cow;
 use std::collections::HashMap;
