@@ -11,7 +11,7 @@ use users::{get_current_uid, get_user_by_uid};
 use time::{now, strftime};
 use regex::Regex;
 
-const QUERY_SHOW_PROCESS: &'static str = "SELECT state,query FROM pg_stat_activity";
+const QUERY_SHOW_PROCESS: &str = "SELECT state,query FROM pg_stat_activity";
 
 lazy_static! {
     static ref NORMALIZE_PATTERNS: Vec<NormalizePattern<'static>> = vec![
@@ -36,11 +36,9 @@ fn show_summary(summ: &HashMap<String, i64>, n_query: u32) {
     let mut pp: Vec<_> = summ.iter().collect();
     pp.sort_by(|a, b| b.1.cmp(a.1));
 
-    let mut cnt = 0;
-    for (k, v) in pp {
+    for (cnt, (k, v)) in pp.iter().enumerate() {
         println!("{:-4} {}", v, k);
-        cnt += 1;
-        if cnt >= n_query {
+        if (cnt+1) as u32 >= n_query {
             break;
         }
     }
@@ -83,7 +81,7 @@ impl Summarize for RecentSummarizer {
     fn new(limit: u32) -> RecentSummarizer {
         RecentSummarizer {
             counts: vec![],
-            limit: limit,
+            limit,
         }
     }
 
@@ -138,7 +136,7 @@ struct NormalizePattern<'a> {
 
 impl<'a> NormalizePattern<'a> {
     fn new(re: Regex, subs: &'a str) -> NormalizePattern<'a> {
-        NormalizePattern { re: re, subs: subs }
+        NormalizePattern { re, subs }
     }
     fn normalize(&self, text: &'a str) -> Cow<'a, str> {
         self.re.replace_all(text, self.subs)
@@ -195,8 +193,8 @@ fn get_process_list(conn: &Connection) -> Vec<Process> {
         }
 
         procs.push(Process {
-            state: state,
-            info: info,
+            state,
+            info,
         });
     }
     procs
@@ -226,10 +224,8 @@ fn exec_profile<T: Summarize>(conn: &Connection, mut summ: T, options: &Profiler
 
             let is_print = if !options.diff {
                 true
-            } else if old_summary_cnt != summary_cnt {
-                true
             } else {
-                false
+                old_summary_cnt != summary_cnt
             };
 
             if is_print {
@@ -237,7 +233,7 @@ fn exec_profile<T: Summarize>(conn: &Connection, mut summ: T, options: &Profiler
                 println!(
                     "##  {}.{:03} {}",
                     strftime("%Y-%m-%d %H:%M:%S", &t).expect("fail strftime(ymdhms)"),
-                    t.tm_nsec / 1000_000,
+                    t.tm_nsec / 1_000_000,
                     strftime("%z", &t).expect("fail strftime(z)")
                 );
 
@@ -323,7 +319,7 @@ fn main() {
         database = database
     );
     let conn = Connection::connect(conn_uri.as_str(), TlsMode::None)
-        .expect(format!("fail get postgres connection: {}", conn_uri).as_str());
+        .unwrap_or_else(|_| panic!("fail get postgres connection: {}", conn_uri));
 
     if last == 0 {
         let summ: Summarizer = Summarize::new(last);
