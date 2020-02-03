@@ -181,15 +181,18 @@ pub fn normalize_query(text: &str) -> String {
 fn get_process_list(conn: &mut Client) -> Vec<Process> {
     let mut procs: Vec<Process> = vec![];
     for row in &conn.query(QUERY_SHOW_PROCESS, &[]).expect("fail query()") {
-        let state: &str = row.get(0);
-        let info: &str = row.get(1);
-        if state != "active" || info == "" || info == QUERY_SHOW_PROCESS {
+        let state: Option<&str> = row.get(0);
+        let info: Option<&str> = row.get(1);
+        if state.is_none() || info.is_none() {
+            continue;
+        }
+        if state.unwrap() != "active" || info.unwrap() == "" || info.unwrap() == QUERY_SHOW_PROCESS {
             continue;
         }
 
         procs.push(Process {
-            state: state.to_string(),
-            info: info.to_string(),
+            state: state.unwrap().to_string(),
+            info: info.unwrap().to_string(),
         });
     }
     procs
