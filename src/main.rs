@@ -5,11 +5,12 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::{env, process, thread};
 use std::time::Duration;
-use postgres::{Connection, TlsMode};
+use postgres::{Client, NoTls};
 use getopts::Options;
 use users::{get_current_uid, get_user_by_uid};
-use time::{now, strftime};
 use regex::Regex;
+use chrono::prelude::*;
+
 
 const QUERY_SHOW_PROCESS: &str = "SELECT state,query FROM pg_stat_activity";
 
@@ -177,24 +178,18 @@ pub fn normalize_query(text: &str) -> String {
     t.to_string()
 }
 
-fn get_process_list(conn: &Connection) -> Vec<Process> {
+fn get_process_list(conn: &mut Client) -> Vec<Process> {
     let mut procs: Vec<Process> = vec![];
     for row in &conn.query(QUERY_SHOW_PROCESS, &[]).expect("fail query()") {
-        let state = match row.get_opt(0) {
-            Some(Ok(d)) => d,
-            _ => "".to_string(),
-        };
-        let info = match row.get_opt(1) {
-            Some(Ok(d)) => d,
-            _ => "".to_string(),
-        };
+        let state: &str = row.get(0);
+        let info: &str = row.get(1);
         if state != "active" || info == "" || info == QUERY_SHOW_PROCESS {
             continue;
         }
 
         procs.push(Process {
-            state,
-            info,
+            state: state.to_string(),
+            info: info.to_string(),
         });
     }
     procs
@@ -204,7 +199,7 @@ fn print_usage(opts: Options) {
     print!("{}", opts.usage("Usage: pgstatprof [options]"));
 }
 
-fn exec_profile<T: Summarize>(conn: &Connection, mut summ: T, options: &ProfilerOption) {
+fn exec_profile<T: Summarize>(conn: &mut Client, mut summ: T, options: &ProfilerOption) {
     let mut cnt = 0;
     let mut old_summary_cnt = 0;
     loop {
@@ -229,12 +224,12 @@ fn exec_profile<T: Summarize>(conn: &Connection, mut summ: T, options: &Profiler
             };
 
             if is_print {
-                let t = now().to_local();
+                let t: DateTime<Local> = Local::now();
                 println!(
                     "##  {}.{:03} {}",
-                    strftime("%Y-%m-%d %H:%M:%S", &t).expect("fail strftime(ymdhms)"),
-                    t.tm_nsec / 1_000_000,
-                    strftime("%z", &t).expect("fail strftime(z)")
+                    t.format("%Y-%m-%d %H:%M:%S"),
+                    t.timestamp_nanos() / 1_000_000,
+                    t.format("%z")
                 );
 
                 summ.show(options.top);
@@ -318,15 +313,15 @@ fn main() {
         port = port,
         database = database
     );
-    let conn = Connection::connect(conn_uri.as_str(), TlsMode::None)
+    let mut conn = Client::connect(conn_uri.as_str(), NoTls)
         .unwrap_or_else(|_| panic!("fail get postgres connection: {}", conn_uri));
 
     if last == 0 {
         let summ: Summarizer = Summarize::new(last);
-        exec_profile(&conn, summ, &options);
+        exec_profile(&mut conn, summ, &options);
     } else {
         let summ: RecentSummarizer = Summarize::new(last);
-        exec_profile(&conn, summ, &options);
+        exec_profile(&mut conn, summ, &options);
     }
 }
 
