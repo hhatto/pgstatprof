@@ -4,8 +4,6 @@ rust:
     - beta
     - stable
 
-sudo: false
-
 addons:
     apt:
         packages:
@@ -61,7 +59,7 @@ deploy:
     api_key:
       secure: tCuF18fHSRiyA5oDvB2kxcEP5YxejoOUF2IdKhoG3fpSvebfr3vWl8IWWuFcmFA2k/J1azlzPc3TRae2IxFQaTAiFl7woLOXHkgGoPozPhIVB2z1T9Dz6NbmzUw70o291viFgkKe9Sm9vxre1t1uBvZBAmOoXfDgR7UD93sfquHEpXynUvndDlES5ohl8ISOHAIQmeBLputIY3DaipkfNohyEXpdiNHB+jMhSILSShUHEZginKnRHMEmahruBkr8023sxFBezaAxC5WXWL1L430norY9xvIVdlXHl3y3SapeYeBkFDiaq093A+r4NRLrsnjHBSdUGJCkqVExwURomRKevYdh3rEUEq9wFIDP4CZfhy9znGgqA3A6zzO69ZUGhkugeJmVMI6KQ08pNbEm/NwY4CgUx/8rLSnUa7pWYoh8G1hG7J0RUKp8LWr+rIxtmwqqiH/hA+HsePYNPFPdhS/cILjBJ23LHfPzp4aBth1iafahSjMs5WTSzpUV0rAGZK4iKNeiR52hcYaw/jigr7LrlfVMJjDc3tVpM4JhezLhUdLe6tw1Jh/unQVOPHLYSqyFebCyIB4YX42tGbsh/MvjWrTQGYiUjzG66aKa1zv8wYYkvYeHod1ui1Sjy1bS4/SeSjF7WHt2lRoxVpan/ZWIRpMFOUwl5lIr1y02dHU=
     file: pgstatprof-${TRAVIS_TAG}-${TARGET}.zip
-    skip_cleanup: true
+    cleanup: false
     on:
         repo: hhatto/pgstatprof
         tags: true
