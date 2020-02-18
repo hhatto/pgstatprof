@@ -175,7 +175,7 @@ pub fn normalize_query(text: &str) -> String {
     for pat in NORMALIZE_PATTERNS.iter() {
         t = pat.normalize(t.as_str()).into();
     }
-    t.to_string()
+    t
 }
 
 fn get_process_list(conn: &mut Client) -> Vec<Process> {
