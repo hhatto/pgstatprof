@@ -31,12 +31,12 @@ before_script:
     - rustc -V
     - cargo -V
     - if [[ "${TARGET}" == "i686-unknown-linux-gnu" ]]; then rustup target add $TARGET; fi
-    - if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
-        rustup component add clippy --toolchain=nightly || cargo install --git https://github.com/rust-lang/rust-clippy/ --force clippy
+    - |
+      if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
+        rustup component add clippy --toolchain=nightly
+        cargo install --git https://github.com/rust-lang/rust-clippy/ --force clippy
       fi
-    - if [[ "$TRAVIS_RUST_VERSION" != "nightly" ]]; then
-        rustup component add clippy
-      fi
+    - if [[ "$TRAVIS_RUST_VERSION" != "nightly" ]]; then rustup component add clippy fi
 
 script:
     - if [ -n "${TARGET-}" ]; then cargo build --verbose --target $TARGET $FEATURES; fi
