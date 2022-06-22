@@ -273,7 +273,7 @@ fn main() {
         Ok(m) => m,
         Err(e) => {
             print_usage(opts);
-            println!("{:?}", e);
+            println!("{}", e);
             return;
         }
     };
