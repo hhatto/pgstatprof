@@ -1,4 +1,4 @@
-# pgstatprof [![travis badge](https://travis-ci.org/hhatto/pgstatprof.svg?branch=master)](https://travis-ci.org/hhatto/pgstatprof)
+# pgstatprof [![build](https://github.com/hhatto/pgstatprof/actions/workflows/rust.yml/badge.svg)](https://github.com/hhatto/pgstatprof/actions/workflows/rust.yml)
 
 sampling profiler for PostgreSQL written in Rust.
 This tool inspired by [myprofiler](https://github.com/KLab/myprofiler).
