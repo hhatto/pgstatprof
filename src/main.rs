@@ -228,12 +228,7 @@ fn exec_profile<T: Summarize>(conn: &mut Client, mut summ: T, options: &Profiler
 
             if is_print {
                 let t: DateTime<Local> = Local::now();
-                println!(
-                    "##  {}.{:03} {}",
-                    t.format("%Y-%m-%d %H:%M:%S"),
-                    t.timestamp_nanos() / 1_000_000,
-                    t.format("%z")
-                );
+                println!("##  {}{}", t.format("%Y-%m-%d %H:%M:%S.%3f"), t.format("%z"));
 
                 summ.show(options.top);
 
