@@ -127,7 +127,6 @@ impl Summarize for RecentSummarizer {
 
 #[derive(Debug)]
 struct Process {
-    state: String,
     info: String,
 }
 
@@ -192,7 +191,6 @@ fn get_process_list(conn: &mut Client) -> Vec<Process> {
         }
 
         procs.push(Process {
-            state: state.unwrap().to_string(),
             info: info.unwrap().to_string(),
         });
     }
