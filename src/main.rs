@@ -35,7 +35,8 @@ trait Summarize {
 
 fn show_summary(summ: &HashMap<String, i64>, n_query: u32) {
     let mut pp: Vec<_> = summ.iter().collect();
-    pp.sort_by(|a, b| b.1.cmp(a.1));
+    pp.sort_by_key(|a| a.1);
+    pp.reverse();
 
     for (cnt, (k, v)) in pp.iter().enumerate() {
         println!("{:-4} {}", v, k);
@@ -104,7 +105,7 @@ impl Summarize for RecentSummarizer {
         if self.counts.len() >= self.limit as usize {
             self.counts.remove(0);
         }
-        qs.sort_by(|a, b| a.cmp(b));
+        qs.sort();
 
         let mut last_query = "";
         for query in qs.iter() {
@@ -210,7 +211,7 @@ fn exec_profile<T: Summarize>(conn: &mut Client, mut summ: T, options: &Profiler
         for process in procs.iter_mut() {
             if options.normalize {
                 let info = normalize_query(process.info.as_str());
-                (*process).info = info;
+                process.info = info;
             }
         }
 
