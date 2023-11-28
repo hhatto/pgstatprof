@@ -337,7 +337,7 @@ mod tests {
         ];
         for (pat, ret) in data {
             println!("vv | {:?}, {:?}", normalize_query(pat), ret);
-            assert!(normalize_query(pat) == ret);
+            assert_eq!(normalize_query(pat), ret);
         }
     }
 }
