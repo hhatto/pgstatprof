@@ -7,7 +7,7 @@ use std::{env, process, thread};
 use std::time::Duration;
 use postgres::{Client, NoTls};
 use getopts::Options;
-use users::{get_current_uid, get_user_by_uid};
+use uzers::{Users, UsersCache};
 use regex::Regex;
 use chrono::prelude::*;
 
@@ -278,10 +278,12 @@ fn main() {
     };
     let user = match matches.opt_str("user") {
         Some(v) => v,
-        None => get_user_by_uid(get_current_uid())
-            .expect("fail get uid")
-            .name()
-            .to_os_string().into_string().expect("get user"),
+        None => {
+            let cache = UsersCache::new();
+            let uid = cache.get_current_uid();
+            let user = cache.get_user_by_uid(uid).expect("fail get uid");
+            user.name().to_string_lossy().to_string()
+        },
     };
     let password = match matches.opt_str("password") {
         Some(v) => v,
