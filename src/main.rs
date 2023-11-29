@@ -17,9 +17,9 @@ const QUERY_SHOW_PROCESS: &str = "SELECT state,query FROM pg_stat_activity";
 lazy_static! {
     static ref NORMALIZE_PATTERNS: Vec<NormalizePattern<'static>> = vec![
         NormalizePattern::new(Regex::new(r" +").expect("fail regex compile: +"), " "),
-        NormalizePattern::new(Regex::new(r#"[+-]{0,1}\b\d+\b"#).expect("fail regex compile: digit"), "N"),
+        NormalizePattern::new(Regex::new(r"[+-]{0,1}\b\d+\b").expect("fail regex compile: digit"), "N"),
         NormalizePattern::new(Regex::new(r"\b0x[0-9A-Fa-f]+\b").expect("fail regex compile: hex"), "0xN"),
-        NormalizePattern::new(Regex::new(r#"(\\')"#).expect("fail regex compile: single quote"), ""),
+        NormalizePattern::new(Regex::new(r"(\\')").expect("fail regex compile: single quote"), ""),
         NormalizePattern::new(Regex::new(r#"(\\")"#).expect("fail regex compile: double quote"), ""),
         NormalizePattern::new(Regex::new(r"'[^']+'").expect("fail regex compile: string1"), "S"),
         NormalizePattern::new(Regex::new(r#""[^"]+""#).expect("fail regex compile: string2"), "S"),
@@ -332,6 +332,7 @@ mod tests {
     fn test_normalize() {
         let data = vec![
             ("IN ('a', 'b', 'c')", "IN (S, S, S)"),
+            (r#"IN ("a", "b", "1", 2)"#, "IN (S, S, S, N)"),
             ("IN ('a', 'b', 'c', 'd', 'e')", "IN (...S)"),
             ("IN (1, 2, 3)", "IN (N, N, N)"),
             ("IN (0x1, 2, 3)", "IN (0xN, N, N)"),
