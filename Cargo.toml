@@ -8,7 +8,7 @@ edition = "2021"
 postgres = "0.19"
 postgres-native-tls = "0.5"
 getopts = "0.2"
-users = "0.11"
-chrono = { git = "https://github.com/chronotope/chrono", rev = "1a0d47a3e58eeb44e2b5022547262650d1a7a436", features = ["clock"] }
+uzers = "0.11"
+chrono = { version = "0.4", features = ["clock"] }
 regex = "1"
 lazy_static = "1.0"

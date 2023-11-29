@@ -7,7 +7,7 @@ use std::{env, process, thread};
 use std::time::Duration;
 use postgres::{Client, NoTls};
 use getopts::Options;
-use users::{get_current_uid, get_user_by_uid};
+use uzers::{Users, UsersCache};
 use regex::Regex;
 use chrono::prelude::*;
 
@@ -17,9 +17,9 @@ const QUERY_SHOW_PROCESS: &str = "SELECT state,query FROM pg_stat_activity";
 lazy_static! {
     static ref NORMALIZE_PATTERNS: Vec<NormalizePattern<'static>> = vec![
         NormalizePattern::new(Regex::new(r" +").expect("fail regex compile: +"), " "),
-        NormalizePattern::new(Regex::new(r#"[+-]{0,1}\b\d+\b"#).expect("fail regex compile: digit"), "N"),
+        NormalizePattern::new(Regex::new(r"[+-]{0,1}\b\d+\b").expect("fail regex compile: digit"), "N"),
         NormalizePattern::new(Regex::new(r"\b0x[0-9A-Fa-f]+\b").expect("fail regex compile: hex"), "0xN"),
-        NormalizePattern::new(Regex::new(r#"(\\')"#).expect("fail regex compile: single quote"), ""),
+        NormalizePattern::new(Regex::new(r"(\\')").expect("fail regex compile: single quote"), ""),
         NormalizePattern::new(Regex::new(r#"(\\")"#).expect("fail regex compile: double quote"), ""),
         NormalizePattern::new(Regex::new(r"'[^']+'").expect("fail regex compile: string1"), "S"),
         NormalizePattern::new(Regex::new(r#""[^"]+""#).expect("fail regex compile: string2"), "S"),
@@ -278,10 +278,12 @@ fn main() {
     };
     let user = match matches.opt_str("user") {
         Some(v) => v,
-        None => get_user_by_uid(get_current_uid())
-            .expect("fail get uid")
-            .name()
-            .to_os_string().into_string().expect("get user"),
+        None => {
+            let cache = UsersCache::new();
+            let uid = cache.get_current_uid();
+            let user = cache.get_user_by_uid(uid).expect("fail get uid");
+            user.name().to_string_lossy().to_string()
+        },
     };
     let password = match matches.opt_str("password") {
         Some(v) => v,
@@ -330,6 +332,7 @@ mod tests {
     fn test_normalize() {
         let data = vec![
             ("IN ('a', 'b', 'c')", "IN (S, S, S)"),
+            (r#"IN ("a", "b", "1", 2)"#, "IN (S, S, S, N)"),
             ("IN ('a', 'b', 'c', 'd', 'e')", "IN (...S)"),
             ("IN (1, 2, 3)", "IN (N, N, N)"),
             ("IN (0x1, 2, 3)", "IN (0xN, N, N)"),
@@ -337,7 +340,7 @@ mod tests {
         ];
         for (pat, ret) in data {
             println!("vv | {:?}, {:?}", normalize_query(pat), ret);
-            assert!(normalize_query(pat) == ret);
+            assert_eq!(normalize_query(pat), ret);
         }
     }
 }
