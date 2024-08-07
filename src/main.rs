@@ -1,10 +1,8 @@
-#[macro_use]
-extern crate lazy_static;
-
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::{env, process, thread};
 use std::time::Duration;
+use std::sync::LazyLock;
 use postgres::{Client, NoTls};
 use getopts::Options;
 use uzers::{Users, UsersCache};
@@ -14,18 +12,16 @@ use chrono::prelude::*;
 
 const QUERY_SHOW_PROCESS: &str = "SELECT state,query FROM pg_stat_activity";
 
-lazy_static! {
-    static ref NORMALIZE_PATTERNS: Vec<NormalizePattern<'static>> = vec![
-        NormalizePattern::new(Regex::new(r" +").expect("fail regex compile: +"), " "),
-        NormalizePattern::new(Regex::new(r"[+-]{0,1}\b\d+\b").expect("fail regex compile: digit"), "N"),
-        NormalizePattern::new(Regex::new(r"\b0x[0-9A-Fa-f]+\b").expect("fail regex compile: hex"), "0xN"),
-        NormalizePattern::new(Regex::new(r"(\\')").expect("fail regex compile: single quote"), ""),
-        NormalizePattern::new(Regex::new(r#"(\\")"#).expect("fail regex compile: double quote"), ""),
-        NormalizePattern::new(Regex::new(r"'[^']+'").expect("fail regex compile: string1"), "S"),
-        NormalizePattern::new(Regex::new(r#""[^"]+""#).expect("fail regex compile: string2"), "S"),
-        NormalizePattern::new(Regex::new(r"(([NS]\s*,\s*){4,})").expect("fail regex compile: long"), "...")
-    ];
-}
+static NORMALIZE_PATTERNS: LazyLock<Vec<NormalizePattern<'static>>> = LazyLock::new(|| vec![
+    NormalizePattern::new(Regex::new(r" +").expect("fail regex compile: +"), " "),
+    NormalizePattern::new(Regex::new(r"[+-]{0,1}\b\d+\b").expect("fail regex compile: digit"), "N"),
+    NormalizePattern::new(Regex::new(r"\b0x[0-9A-Fa-f]+\b").expect("fail regex compile: hex"), "0xN"),
+    NormalizePattern::new(Regex::new(r"(\\')").expect("fail regex compile: single quote"), ""),
+    NormalizePattern::new(Regex::new(r#"(\\")"#).expect("fail regex compile: double quote"), ""),
+    NormalizePattern::new(Regex::new(r"'[^']+'").expect("fail regex compile: string1"), "S"),
+    NormalizePattern::new(Regex::new(r#""[^"]+""#).expect("fail regex compile: string2"), "S"),
+    NormalizePattern::new(Regex::new(r"(([NS]\s*,\s*){4,})").expect("fail regex compile: long"), "...")
+]);
 
 trait Summarize {
     fn new(limit: u32) -> Self;
