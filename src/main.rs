@@ -19,7 +19,8 @@ static NORMALIZE_PATTERNS: LazyLock<Vec<NormalizePattern<'static>>> = LazyLock::
     NormalizePattern::new(Regex::new(r"(\\')").expect("fail regex compile: single quote"), ""),
     NormalizePattern::new(Regex::new(r#"(\\")"#).expect("fail regex compile: double quote"), ""),
     NormalizePattern::new(Regex::new(r"'[^']+'").expect("fail regex compile: string1"), "S"),
-    NormalizePattern::new(Regex::new(r#""[^"]+""#).expect("fail regex compile: string2"), "S"),
+    NormalizePattern::new(Regex::new(r#""([^"]+)""#).expect("fail regex compile: double quote ident"), "$1"),
+    NormalizePattern::new(Regex::new(r"\b[a-zA-Z_]\w+\.(\w+)\b").expect("fail regex compile: table prefix"), "T.$1"),
     NormalizePattern::new(Regex::new(r"(([NS]\s*,\s*){4,})").expect("fail regex compile: long"), "...")
 ]);
 
@@ -328,11 +329,16 @@ mod tests {
     fn test_normalize() {
         let data = vec![
             ("IN ('a', 'b', 'c')", "IN (S, S, S)"),
-            (r#"IN ("a", "b", "1", 2)"#, "IN (S, S, S, N)"),
+            (r#"IN ("a", "b", "1", 2)"#, "IN (a, b, N, N)"),
             ("IN ('a', 'b', 'c', 'd', 'e')", "IN (...S)"),
             ("IN (1, 2, 3)", "IN (N, N, N)"),
             ("IN (0x1, 2, 3)", "IN (0xN, N, N)"),
             ("IN (1, 2, 3, 4, 5)", "IN (...N)"),
+            (r#"SELECT * FROM "users" INNER JOIN "orders" ON "users"."id" = "orders"."user_id""#,
+             "SELECT * FROM users INNER JOIN orders ON T.id = T.user_id"),
+            ("SELECT accounts_userorganization.id, accounts_userorganization.user_id, accounts_userorganization.role FROM accounts_userorganization WHERE accounts_userorganization.user_id = 1",
+             "SELECT T.id, T.user_id, T.role FROM accounts_userorganization WHERE T.user_id = N"),
+            ("SELECT a, b FROM t WHERE x = 1", "SELECT a, b FROM t WHERE x = N"),
         ];
         for (pat, ret) in data {
             println!("vv | {:?}, {:?}", normalize_query(pat), ret);
